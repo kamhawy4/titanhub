@@ -53,6 +53,15 @@ jobs:
       - name: Copy .env
         run: cp .env.example .env
 
+      - name: Set environment variables
+        run: |
+          echo "DB_CONNECTION=mysql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=3306" >> .env
+          echo "DB_DATABASE=titanhub" >> .env
+          echo "DB_USERNAME=root" >> .env
+          echo "DB_PASSWORD=root" >> .env
+
       # 5. انتظار Docker Services
       - name: Wait for DB & Redis
         run: |
