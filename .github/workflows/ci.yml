@@ -1,0 +1,84 @@
+name: Laravel CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  laravel-tests:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: titanhub
+          MYSQL_USER: user
+          MYSQL_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      # Checkout الكود
+      - uses: actions/checkout@v3
+
+      # تثبيت Docker CLI
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      # تثبيت PHP
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: mbstring, pdo_mysql, xml, curl, zip, redis, pcntl
+          coverage: none
+
+      # تثبيت Composer
+      - name: Install Composer dependencies
+        run: composer install --no-progress --no-suggest --prefer-dist
+
+      # إعداد environment
+      - name: Copy .env
+        run: cp .env.example .env
+
+      # الانتظار لغاية MySQL و Redis
+      - name: Wait for MySQL & Redis
+        run: |
+          echo "Waiting for MySQL..."
+          for i in {1..15}; do
+            nc -z localhost 3306 && echo "MySQL is up" && break
+            echo "Waiting..." && sleep 2
+          done
+          echo "Waiting for Redis..."
+          for i in {1..15}; do
+            nc -z localhost 6379 && echo "Redis is up" && break
+            echo "Waiting..." && sleep 2
+          done
+
+      # تشغيل الميجريشن
+      - name: Run Migrations
+        run: php artisan migrate --force
+
+      # تشغيل الاختبارات
+      - name: Run Tests
+        run: php artisan test --parallel
