@@ -45,7 +45,7 @@ services:
             PMA_USER: user
             PMA_PASSWORD: password
         ports:
-            - "8040:80"
+            - "8041:80"
         depends_on:
             - mysql
         networks:
